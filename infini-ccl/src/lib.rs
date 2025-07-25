@@ -1,8 +1,10 @@
 #![cfg(infini)]
 #![deny(warnings)]
 
-use infini_rt::{DevByte, Stream};
-use std::{ffi::c_uint, ptr::null_mut};
+use infini_rt::{bindings::infiniDtype_t, DevByte, Stream};
+use std::ffi::c_int;
+use std::mem::transmute;
+use std::ptr::null_mut;
 
 #[macro_use]
 #[allow(non_snake_case, non_camel_case_types)]
@@ -16,7 +18,7 @@ pub mod bindings {
             use $crate::bindings::*;
             #[allow(unused_unsafe, clippy::macro_metavars_in_unsafe)]
             let err = unsafe { $f };
-            assert_eq!(err, infinicclStatus_t::INFINICCL_STATUS_SUCCESS);
+            assert_eq!(err, infiniStatus_t::INFINI_STATUS_SUCCESS);
         }};
     }
 }
@@ -25,7 +27,7 @@ pub mod bindings {
 pub struct Comm(bindings::infinicclComm_t);
 
 impl Comm {
-    pub fn init_all(ty: bindings::DeviceType, indices: &[c_uint]) -> Vec<Self> {
+    pub fn init_all(ty: bindings::infiniDevice_t, indices: &[c_int]) -> Vec<Self> {
         let mut ans = vec![null_mut(); indices.len()];
         infiniccl!(infinicclCommInitAll(
             ty,
@@ -55,21 +57,23 @@ impl AsRaw for Comm {
 }
 
 impl Comm {
-    pub fn allreduce_sum(
+    pub fn allreduce(
         &self,
         recvbuf: &mut [DevByte],
         sendbuf: &[DevByte],
-        dt: bindings::InfiniDataType_t,
+        dt: infiniDtype_t,
+        op: bindings::infinicclReduceOp_t,
         stream: &Stream,
     ) {
         use infini_rt::AsRaw;
-        infiniccl!(infinicclAllReduceSum(
-            self.as_raw(),
-            sendbuf.as_ptr().cast_mut().cast(),
-            recvbuf.as_mut_ptr().cast(),
+        infiniccl!(infinicclAllReduce(
+            sendbuf.as_ptr() as *mut _,
+            recvbuf.as_mut_ptr() as *mut _,
             sendbuf.len(),
-            dt,
-            stream.as_raw().cast()
+            unsafe { transmute(dt) },
+            op,
+            self.as_raw(),
+            stream.as_raw()
         ))
     }
 }

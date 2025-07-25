@@ -26,7 +26,9 @@
         .clang_arg(format!("-I{}", include.display()))
         // Only generate bindings for the functions in these namespaces.
         .allowlist_item("infinirt.*")
-        .allowlist_item("DeviceType")
+        .allowlist_item("infiniDevice_t")
+        .allowlist_item("infiniStatus_t")
+        .allowlist_item("infiniDtype_t")
         // Annotate the given type with the #[must_use] attribute.
         // Nothing...
         // Generate rust style enums.

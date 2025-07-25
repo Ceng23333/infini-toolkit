@@ -1,5 +1,5 @@
 ﻿use crate::{
-    bindings::{infinirtEventQuery, infinirtEvent_t, infinirtStatus_t as Status},
+    bindings::{infinirtEventStatus_t, infinirtEvent_t},
     AsRaw, Device, Stream,
 };
 use std::ptr::null_mut;
@@ -10,7 +10,7 @@ pub struct Event(infinirtEvent_t);
 impl Device {
     pub fn event(&self) -> Event {
         let mut event = null_mut();
-        infinirt!(infinirtEventCreate(&mut event, self.ty, self.id));
+        infinirt!(infinirtEventCreate(&mut event));
         Event(event)
     }
 }
@@ -40,11 +40,9 @@ impl Event {
 
     #[inline]
     pub fn is_complete(&self) -> bool {
-        match unsafe { infinirtEventQuery(self.0) } {
-            Status::INFINIRT_STATUS_SUCCESS => true,
-            Status::INFINIRT_STATUS_NOT_READY => false,
-            _ => unreachable!(),
-        }
+        let mut status = infinirtEventStatus_t::INFINIRT_EVENT_NOT_READY;
+        infinirt!(infinirtEventQuery(self.0, &mut status));
+        matches!(status, infinirtEventStatus_t::INFINIRT_EVENT_COMPLETE)
     }
 }
 
@@ -56,6 +54,6 @@ impl Stream {
 
     #[inline]
     pub fn wait(&self, event: &Event) {
-        infinirt!(infinirtStreamWaitEvent(event.0, self.as_raw()))
+        infinirt!(infinirtStreamWaitEvent(self.as_raw(), event.0))
     }
 }

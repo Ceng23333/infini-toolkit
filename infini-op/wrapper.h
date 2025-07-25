@@ -1,1 +1,2 @@
-﻿#include "infini_operators.h"
+﻿#include "infiniop.h"
+#include <infiniop/ops/gemm.h>

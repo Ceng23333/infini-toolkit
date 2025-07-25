@@ -1,15 +1,15 @@
-﻿use crate::{bindings::infiniopStatus_t, AsRaw};
+﻿use crate::{bindings::infiniStatus_t, AsRaw};
 use std::ptr::null_mut;
 
 pub struct Descriptor<T> {
     ptr: *mut T,
-    destroyer: unsafe extern "C" fn(*mut T) -> infiniopStatus_t,
+    destroyer: unsafe extern "C" fn(*mut T) -> infiniStatus_t,
 }
 
 impl<T> Descriptor<T> {
     pub fn new(
         f: impl FnOnce(&mut *mut T),
-        destroyer: unsafe extern "C" fn(*mut T) -> infiniopStatus_t,
+        destroyer: unsafe extern "C" fn(*mut T) -> infiniStatus_t,
     ) -> Self {
         let mut ptr = null_mut();
         f(&mut ptr);
@@ -21,7 +21,7 @@ impl<T> Drop for Descriptor<T> {
     fn drop(&mut self) {
         assert_eq!(
             unsafe { (self.destroyer)(self.ptr) },
-            infiniopStatus_t::STATUS_SUCCESS
+            infiniStatus_t::INFINI_STATUS_SUCCESS
         )
     }
 }

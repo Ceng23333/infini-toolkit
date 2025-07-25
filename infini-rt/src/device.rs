@@ -1,14 +1,15 @@
-﻿use crate::DeviceType;
+﻿use crate::infiniDevice_t;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Device {
-    pub ty: DeviceType,
+    pub ty: infiniDevice_t,
     pub id: u32,
 }
 
 impl Device {
     #[inline]
     pub fn synchronize(&self) {
-        infinirt!(infinirtDeviceSynchronize(self.ty, self.id))
+        infinirt!(infinirtSetDevice(self.ty, self.id as i32));
+        infinirt!(infinirtDeviceSynchronize());
     }
 }

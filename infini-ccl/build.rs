@@ -25,7 +25,10 @@
         .header("wrapper.h")
         .clang_arg(format!("-I{}", include.display()))
         // Only generate bindings for the functions in these namespaces.
-        .allowlist_item("infini.*")
+        .allowlist_item("infiniccl.*")
+        .allowlist_item("infiniDevice_t")
+        .allowlist_item("infiniStatus_t")
+        .allowlist_item("infiniDtype_t")
         // Annotate the given type with the #[must_use] attribute.
         // Nothing...
         // Generate rust style enums.

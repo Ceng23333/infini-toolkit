@@ -5,8 +5,10 @@
 
     let cfg = Cfg::new("infini");
     let Some(root) = find_infini_op() else {
+        println!("cargo:warning=infini-op not found");
         return;
     };
+    println!("cargo:warning=infini-op found: {}", root.display());
 
     let include = root.join("include");
     let lib = root.join("lib");
@@ -26,7 +28,9 @@
         .clang_arg(format!("-I{}", include.display()))
         // Only generate bindings for the functions in these namespaces.
         .allowlist_item("infiniop.*")
-        .allowlist_item("DeviceType")
+        .allowlist_item("infiniDevice_t")
+        .allowlist_item("infiniStatus_t")
+        .allowlist_item("infiniDtype_t")
         // Annotate the given type with the #[must_use] attribute.
         // Nothing...
         // Generate rust style enums.
@@ -44,6 +48,7 @@
 
     // Write the bindings to the $OUT_DIR/bindings.rs file.
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    println!("cargo:warning=out_path: {}", out_path.display());
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");

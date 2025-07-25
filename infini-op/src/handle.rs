@@ -1,17 +1,20 @@
-﻿use crate::{
-    bindings::{infiniopHandle_t, Device},
-    AsRaw,
-};
-use std::{ffi::c_int, ptr::null_mut};
+﻿use crate::{bindings::infiniopHandle_t, AsRaw};
+use std::ptr::null_mut;
 
 #[repr(transparent)]
 pub struct Handle(infiniopHandle_t);
 
 impl Handle {
-    pub fn new(device: Device, id: c_int) -> Self {
+    pub fn new() -> Self {
         let mut ptr = null_mut();
-        infiniop!(infiniopCreateHandle(&mut ptr, device, id));
+        infiniop!(infiniopCreateHandle(&mut ptr));
         Self(ptr)
+    }
+}
+
+impl Default for Handle {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -30,26 +33,4 @@ impl AsRaw for Handle {
     unsafe fn as_raw(&self) -> Self::Raw {
         self.0
     }
-}
-
-#[test]
-fn test_init() {
-    use crate::bindings::{
-        infiniopCreateHandle,
-        infiniopStatus_t::{STATUS_BAD_DEVICE, STATUS_SUCCESS},
-    };
-    let init = [
-        Device::DevCpu,
-        Device::DevNvGpu,
-        Device::DevCambriconMlu,
-        Device::DevAscendNpu,
-    ]
-    .map(|dev| {
-        let mut ptr = null_mut();
-        unsafe { infiniopCreateHandle(&mut ptr, dev, 0) }
-    });
-    assert!(init
-        .iter()
-        .all(|&status| matches!(status, STATUS_SUCCESS | STATUS_BAD_DEVICE)));
-    assert!(init.contains(&STATUS_SUCCESS));
 }

@@ -1,7 +1,7 @@
 ﻿use crate::{AsRaw, Device, Stream};
 use std::{
     alloc::Layout,
-    mem::forget,
+    mem::{forget, size_of_val},
     ops::{Deref, DerefMut},
     os::raw::c_void,
     ptr::{null_mut, NonNull},
@@ -16,7 +16,12 @@ impl Device {
     pub fn memcpy_d2d(&self, dst: &mut [DevByte], src: &[DevByte]) {
         let (dst, src, len) = memcpy_ptr(dst, src);
         if len > 0 {
-            infinirt!(infinirtMemcpy(dst, src, self.ty, self.id, len))
+            infinirt!(infinirtMemcpy(
+                dst,
+                src,
+                len,
+                infinirtMemcpyKind_t::INFINIRT_MEMCPY_D2D
+            ))
         }
     }
 
@@ -24,7 +29,12 @@ impl Device {
     pub fn memcpy_h2d<T: Copy>(&self, dst: &mut [DevByte], src: &[T]) {
         let (dst, src, len) = memcpy_ptr(dst, src);
         if len > 0 {
-            infinirt!(infinirtMemcpyH2D(dst, self.ty, self.id, src, len))
+            infinirt!(infinirtMemcpy(
+                dst,
+                src,
+                len,
+                infinirtMemcpyKind_t::INFINIRT_MEMCPY_H2D
+            ))
         }
     }
 
@@ -32,7 +42,12 @@ impl Device {
     pub fn memcpy_d2h<T: Copy>(&self, dst: &mut [T], src: &[DevByte]) {
         let (dst, src, len) = memcpy_ptr(dst, src);
         if len > 0 {
-            infinirt!(infinirtMemcpyD2H(dst, src, self.ty, self.id, len))
+            infinirt!(infinirtMemcpy(
+                dst,
+                src,
+                len,
+                infinirtMemcpyKind_t::INFINIRT_MEMCPY_D2H
+            ))
         }
     }
 }
@@ -42,8 +57,13 @@ impl Stream {
     pub fn memcpy_d2d(&self, dst: &mut [DevByte], src: &[DevByte]) {
         let (dst, src, len) = memcpy_ptr(dst, src);
         if len > 0 {
-            let Device { ty, id } = self.get_device();
-            infinirt!(infinirtMemcpyAsync(dst, src, ty, id, len, self.as_raw()))
+            infinirt!(infinirtMemcpyAsync(
+                dst,
+                src,
+                len,
+                infinirtMemcpyKind_t::INFINIRT_MEMCPY_D2D,
+                self.as_raw()
+            ))
         }
     }
 
@@ -51,8 +71,13 @@ impl Stream {
     pub fn memcpy_h2d<T: Copy>(&self, dst: &mut [DevByte], src: &[T]) {
         let (dst, src, len) = memcpy_ptr(dst, src);
         if len > 0 {
-            let Device { ty, id } = self.get_device();
-            infinirt!(infinirtMemcpyH2DAsync(dst, ty, id, src, len, self.as_raw()))
+            infinirt!(infinirtMemcpyAsync(
+                dst,
+                src,
+                len,
+                infinirtMemcpyKind_t::INFINIRT_MEMCPY_H2D,
+                self.as_raw()
+            ))
         }
     }
 }
@@ -65,7 +90,6 @@ fn memcpy_ptr<T, U>(dst: &mut [T], src: &[U]) -> (*mut c_void, *const c_void, us
 }
 
 pub struct DevBlob {
-    dev: Device,
     ptr: NonNull<DevByte>,
     len: usize,
 }
@@ -76,12 +100,11 @@ impl Device {
         let len = layout.size();
 
         DevBlob {
-            dev: *self,
             ptr: if len == 0 {
                 NonNull::dangling()
             } else {
                 let mut ptr = null_mut();
-                infinirt!(infinirtMalloc(&mut ptr, self.ty, self.id, len));
+                infinirt!(infinirtMalloc(&mut ptr, len));
                 NonNull::new(ptr).unwrap().cast()
             },
             len,
@@ -93,13 +116,17 @@ impl Device {
         let len = size_of_val(data);
 
         DevBlob {
-            dev: *self,
             ptr: if len == 0 {
                 NonNull::dangling()
             } else {
                 let mut ptr = null_mut();
-                infinirt!(infinirtMalloc(&mut ptr, self.ty, self.id, len));
-                infinirt!(infinirtMemcpyH2D(ptr, self.ty, self.id, src, len));
+                infinirt!(infinirtMalloc(&mut ptr, len));
+                infinirt!(infinirtMemcpy(
+                    ptr,
+                    src,
+                    len,
+                    infinirtMemcpyKind_t::INFINIRT_MEMCPY_H2D
+                ));
                 NonNull::new(ptr).unwrap().cast()
             },
             len,
@@ -112,15 +139,13 @@ impl Stream {
         let layout = Layout::array::<T>(len).unwrap();
         let len = layout.size();
 
-        let dev = self.get_device();
         DevBlob {
-            dev,
             ptr: if len == 0 {
                 NonNull::dangling()
             } else {
                 let raw = unsafe { self.as_raw() };
                 let mut ptr = null_mut();
-                infinirt!(infinirtMallocAsync(&mut ptr, dev.ty, dev.id, len, raw));
+                infinirt!(infinirtMallocAsync(&mut ptr, len, raw));
                 NonNull::new(ptr).unwrap().cast()
             },
             len,
@@ -131,16 +156,20 @@ impl Stream {
         let src = data.as_ptr().cast();
         let len = size_of_val(data);
 
-        let dev = self.get_device();
         DevBlob {
-            dev,
             ptr: if len == 0 {
                 NonNull::dangling()
             } else {
                 let raw = unsafe { self.as_raw() };
                 let mut ptr = null_mut();
-                infinirt!(infinirtMallocAsync(&mut ptr, dev.ty, dev.id, len, raw));
-                infinirt!(infinirtMemcpyH2DAsync(ptr, dev.ty, dev.id, src, len, raw));
+                infinirt!(infinirtMallocAsync(&mut ptr, len, raw));
+                infinirt!(infinirtMemcpyAsync(
+                    ptr,
+                    src,
+                    len,
+                    infinirtMemcpyKind_t::INFINIRT_MEMCPY_H2D,
+                    raw
+                ));
                 NonNull::new(ptr).unwrap().cast()
             },
             len,
@@ -152,15 +181,10 @@ impl Stream {
             return;
         }
 
-        let &DevBlob { dev, ptr, .. } = &blob;
+        let &DevBlob { ptr, .. } = &blob;
         forget(blob);
 
-        infinirt!(infinirtFreeAsync(
-            ptr.as_ptr().cast(),
-            dev.ty,
-            dev.id,
-            self.as_raw()
-        ))
+        infinirt!(infinirtFreeAsync(ptr.as_ptr().cast(), self.as_raw()))
     }
 }
 
@@ -170,11 +194,7 @@ impl Drop for DevBlob {
             return;
         }
 
-        infinirt!(infinirtFree(
-            self.ptr.as_ptr().cast(),
-            self.dev.ty,
-            self.dev.id
-        ))
+        infinirt!(infinirtFree(self.ptr.as_ptr().cast(),))
     }
 }
 
@@ -213,7 +233,6 @@ impl DerefMut for DevBlob {
 }
 
 pub struct HostBlob {
-    dev: Device,
     ptr: NonNull<u8>,
     len: usize,
 }
@@ -224,12 +243,11 @@ impl Device {
         let len = layout.size();
 
         HostBlob {
-            dev: *self,
             ptr: if len == 0 {
                 NonNull::dangling()
             } else {
                 let mut ptr = null_mut();
-                infinirt!(infinirtMallocHost(&mut ptr, self.ty, self.id, len));
+                infinirt!(infinirtMallocHost(&mut ptr, len));
                 NonNull::new(ptr).unwrap().cast()
             },
             len,
@@ -243,11 +261,7 @@ impl Drop for HostBlob {
             return;
         }
 
-        infinirt!(infinirtFreeHost(
-            self.ptr.as_ptr().cast(),
-            self.dev.ty,
-            self.dev.id,
-        ))
+        infinirt!(infinirtFreeHost(self.ptr.as_ptr().cast(),))
     }
 }
 

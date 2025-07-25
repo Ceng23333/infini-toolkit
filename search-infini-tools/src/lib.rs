@@ -10,7 +10,7 @@ pub fn find_infini_rt() -> Option<PathBuf> {
 }
 
 pub fn find_infini_op() -> Option<PathBuf> {
-    find_header_lib("infini_operators.h", "infiniop")
+    find_header_lib("infiniop.h", "infiniop")
 }
 
 pub fn find_infini_ccl() -> Option<PathBuf> {

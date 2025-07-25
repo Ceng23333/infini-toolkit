@@ -1,56 +1,41 @@
-﻿use crate::bindings::DataLayout;
+﻿use crate::bindings::infiniDtype_t;
 use digit_layout::{types as ty, DigitLayout};
-use std::{mem::transmute, sync::LazyLock};
+
+pub(crate) fn data_layout(dt: DigitLayout) -> infiniDtype_t {
+    use infiniDtype_t::*;
+    match dt {
+        ty::I8 => INFINI_DTYPE_I8,
+        ty::I16 => INFINI_DTYPE_I16,
+        ty::I32 => INFINI_DTYPE_I32,
+        ty::I64 => INFINI_DTYPE_I64,
+        ty::U8 => INFINI_DTYPE_U8,
+        ty::U16 => INFINI_DTYPE_U16,
+        ty::U32 => INFINI_DTYPE_U32,
+        ty::U64 => INFINI_DTYPE_U64,
+        ty::F16 => INFINI_DTYPE_F16,
+        ty::BF16 => INFINI_DTYPE_BF16,
+        ty::F32 => INFINI_DTYPE_F32,
+        ty::F64 => INFINI_DTYPE_F64,
+        _ => panic!("unsupported data type {:?}", dt),
+    }
+}
 
 #[allow(dead_code)]
-pub(crate) fn digit_layout(dt: DataLayout) -> DigitLayout {
-    let code: u32 = unsafe { transmute(dt) };
-    macro_rules! match_dt {
-        ($( $name:ident )+) => {
-            $( if code == *$name { return ty::$name; } )+
-        };
+pub(crate) fn digit_layout(dt: infiniDtype_t) -> DigitLayout {
+    use infiniDtype_t::*;
+    match dt {
+        INFINI_DTYPE_I8 => ty::I8,
+        INFINI_DTYPE_I16 => ty::I16,
+        INFINI_DTYPE_I32 => ty::I32,
+        INFINI_DTYPE_I64 => ty::I64,
+        INFINI_DTYPE_U8 => ty::U8,
+        INFINI_DTYPE_U16 => ty::U16,
+        INFINI_DTYPE_U32 => ty::U32,
+        INFINI_DTYPE_U64 => ty::U64,
+        INFINI_DTYPE_F16 => ty::F16,
+        INFINI_DTYPE_BF16 => ty::BF16,
+        INFINI_DTYPE_F32 => ty::F32,
+        INFINI_DTYPE_F64 => ty::F64,
+        _ => panic!("unsupported data type {:?}", dt),
     }
-    match_dt!(I8 I16 I32 I64 U8 U16 U32 U64 F16 BF16 F32 F64);
-    panic!("unsupported data type")
-}
-
-pub(crate) fn data_layout(dt: DigitLayout) -> DataLayout {
-    macro_rules! match_dt {
-        ($( $name:ident )+) => {
-            match dt {
-                $( ty::$name => unsafe { transmute::<u32, DataLayout>(*$name) }, )+
-                _ => panic!("unsupported data type"),
-            }
-        };
-    }
-    match_dt!(I8 I16 I32 I64 U8 U16 U32 U64 F16 BF16 F32 F64)
-}
-
-macro_rules! dt {
-    ($( $name:ident = $packed:expr, $sign:expr, $size:expr, $mantissa:expr, $exponent:expr )+) => {
-        $(
-            static $name: LazyLock<u32> = LazyLock::new(move || {
-                let dt = DataLayout {
-                    _bitfield_align_1: [],
-                    _bitfield_1: DataLayout::new_bitfield_1($packed, $sign, $size, $mantissa, $exponent),
-                };
-                unsafe { transmute(dt) }
-            });
-        )+
-    };
-}
-
-dt! {
-    I8   = 1, 1, 1,  7,  0
-    I16  = 1, 1, 2, 15,  0
-    I32  = 1, 1, 4, 31,  0
-    I64  = 1, 1, 8, 63,  0
-    U8   = 1, 0, 1,  8,  0
-    U16  = 1, 0, 2, 16,  0
-    U32  = 1, 0, 4, 32,  0
-    U64  = 1, 0, 8, 64,  0
-    F16  = 1, 1, 2, 10,  5
-    BF16 = 1, 1, 2,  7,  8
-    F32  = 1, 1, 4, 23,  8
-    F64  = 1, 1, 8, 52, 11
 }

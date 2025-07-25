@@ -10,17 +10,17 @@
 )]
 pub mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
 
-    #[macro_export]
-    macro_rules! infiniop {
-        ($f:expr) => {{
-            #[allow(unused_imports)]
-            use $crate::bindings::*;
-            #[allow(unused_unsafe, clippy::macro_metavars_in_unsafe)]
-            let err = unsafe { $f };
-            assert_eq!(err, infiniopStatus_t::STATUS_SUCCESS);
-        }};
-    }
+#[macro_export]
+macro_rules! infiniop {
+    ($f:expr) => {{
+        #[allow(unused_imports)]
+        use $crate::bindings::*;
+        #[allow(unused_unsafe, clippy::macro_metavars_in_unsafe)]
+        let err = unsafe { $f };
+        assert_eq!(err, $crate::bindings::infiniStatus_t::INFINI_STATUS_SUCCESS);
+    }};
 }
 
 /// 资源的原始形式的表示。通常来自底层库的定义。

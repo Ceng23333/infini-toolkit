@@ -13,21 +13,21 @@ pub mod bindings {
             use $crate::bindings::*;
             #[allow(unused_unsafe, clippy::macro_metavars_in_unsafe)]
             let err = unsafe { $f };
-            assert_eq!(err, infinirtStatus_t::INFINIRT_STATUS_SUCCESS);
+            assert_eq!(err, infiniStatus_t::INFINI_STATUS_SUCCESS);
         }};
     }
 }
 
-pub use bindings::DeviceType::{self, *};
+pub use bindings::infiniDevice_t::{self, *};
 
 #[inline]
-pub fn init(dev: DeviceType) {
-    infinirt!(infinirtInit(dev));
+pub fn init() {
+    infinirt!(infinirtInit());
 }
 
 #[test]
 fn test_init() {
-    init(DEVICE_CPU)
+    init()
 }
 
 mod device;
