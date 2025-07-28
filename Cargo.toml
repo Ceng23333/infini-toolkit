@@ -1,5 +1,5 @@
 [workspace]
-members = ["infini-rt", "infini-op", "infini-ccl", "search-infini-tools"]
+members = ["infini-rt", "infini-op", "infini-ccl", "search-infini-tools", "example"]
 resolver = "2"
 
 [workspace.dependencies]
