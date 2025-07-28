@@ -17,12 +17,12 @@ pub fn causal_softmax() {
             let input_slice = &x_data[offset..offset + D3];
             let mut masked_input = input_slice.to_vec();
 
-            for c in 0..D3 {
+            for (c, mask_item) in masked_input.iter_mut().enumerate().take(D3) {
                 // This is the rust equivalent of the python code:
                 // mask = torch.tril(torch.ones_like(x), diagonal=-1).flip(dims=[-2, -1])
                 // The condition for the mask to be 1 at (j, c) is (D3 - 1 - c) < (D2 - 1 - j)
                 if (D3 - 1 - c) < (D2 - 1 - j) {
-                    masked_input[c] = f32::NEG_INFINITY;
+                    *mask_item = f32::NEG_INFINITY;
                 }
             }
 

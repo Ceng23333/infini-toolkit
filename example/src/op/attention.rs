@@ -69,7 +69,7 @@ pub fn attention() {
                     v.as_raw(),
                     k_cache.as_raw(),
                     v_cache.as_raw(),
-                    POS as usize,
+                    POS,
                 ) }
             },
             infini_op::bindings::infiniopDestroyAttentionDescriptor,

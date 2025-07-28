@@ -11,7 +11,7 @@ pub fn clip() {
     // Reference implementation
     let mut y_ref: Vec<f32> = vec![0.0; SHAPE[0]];
     for i in 0..SHAPE[0] {
-        y_ref[i] = x_data[i].max(MIN_VAL).min(MAX_VAL);
+        y_ref[i] = x_data[i].clamp(MIN_VAL, MAX_VAL);
     }
 
     let handle = Handle::new();

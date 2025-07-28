@@ -57,6 +57,7 @@ impl AsRaw for Comm {
 }
 
 impl Comm {
+    #[allow(clippy::missing_transmute_annotations)]
     pub fn allreduce(
         &self,
         recvbuf: &mut [DevByte],
